@@ -1,0 +1,13 @@
+---
+- name: Install MySQL Server
+  package:
+    name: 
+      - mysql-server
+      - mysql-client
+      - python3-pip
+    state: present
+
+- name: Installing PIP modules for dependency
+  pip:
+    name:
+      - pymysql

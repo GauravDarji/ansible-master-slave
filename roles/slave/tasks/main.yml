@@ -1,0 +1,39 @@
+---
+- name: Copy MySQL configuration file
+  template:
+    src: slave.cnf.j2
+    dest: /etc/mysql/mysql.conf.d/slave.cnf
+    when: inventory_hostname == 'slave'
+
+- name: Stop MySQL service
+  service:
+    name: mysql
+    state: stopped
+  when: inventory_hostname == 'slave'
+
+- name: Start MySQL service
+  service:
+    name: mysql
+    state: started
+  when: inventory_hostname == 'slave'
+
+- name: Get MySQL master status
+  command: "mysql -e 'SHOW MASTER STATUS;'"
+  register: master_status_raw
+  when: inventory_hostname == 'master'
+
+- name: Get MySQL master status from master
+  include_role:
+    name: master
+    tasks_from: main.yml
+
+- name: Set up MySQL replication
+  mysql_replication:
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+    master_host: "{{ master_host }}"
+    master_user: "replication_user"
+    master_password: "{{ replication_password }}"
+    master_log_file: "{{ master_status_split[0] }}"
+    master_log_pos: "{{ master_status_split[1] }}"
+    mode: changeprimary
+  when: inventory_hostname == 'slave'

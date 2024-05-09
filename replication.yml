@@ -1,0 +1,10 @@
+---
+- hosts: all
+  remote_user: root
+  become: true
+  vars_files:
+    - group_vars/mysql_servers.yml
+  roles:
+    - common
+    - master
+    - slave

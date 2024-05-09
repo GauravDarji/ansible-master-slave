@@ -1,0 +1,32 @@
+---
+- name: Copy MySQL configuration file
+  template:
+    src: master.cnf.j2
+    dest: /etc/mysql/mysql.conf.d/master.cnf
+    when: inventory_hostname == 'master'
+  notify: Restart MySQL 
+
+- name: Get MySQL master status
+  command: "mysql -e 'SHOW MASTER STATUS;'"
+  register: master_status_raw
+  delegate_to: master
+  run_once: true
+
+- set_fact:
+    master_status_split: "{{ master_status_raw.stdout_lines[1].split('\t') }}"
+  run_once: true
+
+  
+# - debug:
+#     msg: "{{ master_status.stdout_lines }}"
+#   when: inventory_hostname == 'master'
+
+- name: Create MySQL replication user
+  mysql_user:
+    name: replication_user
+    password: "{{ replication_password }}"
+    priv: "*.*:REPLICATION SLAVE"
+    host: "%"
+    login_unix_socket: /var/run/mysqld/mysqld.sock
+  when: inventory_hostname == 'master'
+  notify: Restart MySQL
